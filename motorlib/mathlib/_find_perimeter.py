@@ -18,7 +18,7 @@ def find_perimeter(image, level,
     if image.ndim != 2:
         raise ValueError("Only 2D arrays are supported.")
 
-    # usa versão rápida Cython se existir
+    # Use fast Cython version if available
     if _get_perimeter is not None:
         perimeter, segments = _get_perimeter(
             image,

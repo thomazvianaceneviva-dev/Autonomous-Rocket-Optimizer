@@ -13,7 +13,7 @@ from core.models import MotorDesign
 MAX_PRES   = 4e6
 PROP_GAMMA = 1.13
 AMB_PRES   = 101325.0
-NOZZLE_EFFICIENCY = 0.832 #a eficiencia aqui deve ser mais baixa para ajustar o isp, aparentemente eh de uma diferenca de valores para a funcao "getajustedthrustcoeff" que deve estar usando eficiencia mais alta que no app
+NOZZLE_EFFICIENCY = 0.832 # Efficiency here should be lower to adjust ISP; appears to be a difference in values for the "getajustedthrustcoeff" function which may be using higher efficiency than in the app
 
 # ==========================================================
 # HELPERS
@@ -21,15 +21,15 @@ NOZZLE_EFFICIENCY = 0.832 #a eficiencia aqui deve ser mais baixa para ajustar o 
 
 def _expansion(p: float) -> float:
     """
-    Calcula a razão de expansão ótima (Aexit/Athroat)
-    para a pressão de câmara real simulada.
+    Calculate the optimal expansion ratio (Aexit/Athroat)
+    for the simulated chamber pressure.
     """
     try:
         ratio = AMB_PRES / p
         exp   = 1.0 / eRatioFromPRatio(PROP_GAMMA, ratio)
         return float(np.clip(exp, 1.1, 8.0))
     except Exception:
-        return 4.0  # fallback conservador
+        return 4.0  # conservative fallback
 
 
 def _nozzle(throat: float, exp: float) -> Nozzle:
@@ -45,10 +45,10 @@ def _nozzle(throat: float, exp: float) -> Nozzle:
     return n
 
 
-def _prop() -> Propellant: #todos os valores foram pegos do KNSB nakka do openMotor
+def _prop() -> Propellant: # All values obtained from KNSB Nakka OpenMotor
     p = Propellant()
     p.setProperty("name",    "KNSB")
-    p.setProperty("density", 1749.7)  # kg/m³ — 1.7497 g/cm³ do seu propelente
+    p.setProperty("density", 1749.7)  # kg/m³ — 1.7497 g/cm³ of your propellant
 
     t = PropellantTab()
     t.setProperty("minPressure", 7.03e6)
@@ -76,21 +76,21 @@ def _grains(design: MotorDesign) -> list:
 
 
 # ==========================================================
-# SIMULAÇÃO PRINCIPAL — 2 PASSAGENS
+# MAIN SIMULATION — 2 PASSES
 # ==========================================================
 
 def simulate_openmotor(design: MotorDesign):
     """
-    Passagem 1: simula com expansão neutra (4.0) para obter pressão real.
-    Passagem 2: simula com expansão ótima calculada da pressão real.
+    Pass 1: simulates with neutral expansion (4.0) to obtain actual chamber pressure.
+    Pass 2: simulates with optimal expansion calculated from the actual pressure.
 
-    Retorna:
+    Returns:
         isp (s), burn_time (s), sim2 (SimulationResult), prop_mass (kg)
-    Retorna 0.0, 0.0, None, 0.0 em caso de design inválido ou erro.
+    Returns 0.0, 0.0, None, 0.0 in case of invalid design or error.
     """
 
     # --------------------------------------------------
-    # FILTROS GEOMÉTRICOS
+    # GEOMETRIC FILTERS
     # --------------------------------------------------
     if design.core_diam_mm >= design.outer_diam_mm:
         return 0.0, 0.0, None, 0.0
@@ -102,10 +102,10 @@ def simulate_openmotor(design: MotorDesign):
 
     try:
         # ==================================================
-        # PASSAGEM 1 — expansão provisória, obtém pressão real
+        # PASS 1 — provisional expansion, obtains actual pressure
         # ==================================================
         m1            = Motor()
-        m1.config.setProperty("ambPressure", AMB_PRES)  # <-- debug: faz o motor operar na pressao atm
+        m1.config.setProperty("ambPressure", AMB_PRES)  # <-- debug: makes the motor operate at atmospheric pressure
         m1.nozzle     = _nozzle(throat, 4.0)
         m1.propellant = _prop()
         m1.grains     = _grains(design)
@@ -129,21 +129,21 @@ def simulate_openmotor(design: MotorDesign):
             p_real = 2.5e6
 
         # ==================================================
-        # EXPANSÃO ÓTIMA com pressão real
+        # OPTIMAL EXPANSION with actual pressure
         # ==================================================
         exp = _expansion(p_real)
 
-        # DEBUG temporário
+        # Temporary debug
         exit_diam_mm = (throat * np.sqrt(exp)) * 1000
-        print(f"[DEBUG] Expansão calculada: {exp:.4f}")
-        print(f"[DEBUG] Diâmetro saída:     {exit_diam_mm:.2f} mm")
-        print(f"[DEBUG] Pressão câmara:     {p_real/1e5:.2f} bar")
+        print(f"[DEBUG] Calculated expansion: {exp:.4f}")
+        print(f"[DEBUG] Exit diameter:     {exit_diam_mm:.2f} mm")
+        print(f"[DEBUG] Chamber pressure:     {p_real/1e5:.2f} bar")
 
         # ==================================================
-        # PASSAGEM 2 — bocal ótimo, resultado final
+        # PASS 2 — optimal nozzle, final result
         # ==================================================
         m2            = Motor()
-        m2.config.setProperty("ambPressure", AMB_PRES)  # <-- debug: faz o motor operar na pressao atm
+        m2.config.setProperty("ambPressure", AMB_PRES)  # <-- debug: makes the motor operate at atmospheric pressure
         m2.nozzle     = _nozzle(throat, exp)
         m2.propellant = _prop()
         m2.grains     = _grains(design)
@@ -159,15 +159,15 @@ def simulate_openmotor(design: MotorDesign):
         except Exception:
             pass
 
-        # filtro de alertas de erro
+        # error alert filter
         erros = [a for a in s2.alerts if a.level.name == "ERROR"]
         if erros:
             return 0.0, 0.0, None, 0.0
 
         # --------------------------------------------------
-        # RESULTADOS
+        # RESULTS
         # --------------------------------------------------
-        # DEPOIS (corrigido) — ISP físico direto
+        # AFTER (fixed) — Direct physical ISP
         G0 = 9.80665
         try:
             impulse   = float(s2.getImpulse())
@@ -176,12 +176,12 @@ def simulate_openmotor(design: MotorDesign):
         except Exception:
             isp = 0.0
 
-        # Diagnóstico — remova depois de confirmar
+        # Diagnostic — remove after confirming
         try:
-            print(f"[DEBUG] Impulso:       {s2.getImpulse():.2f} Ns")
+            print(f"[DEBUG] Impulse:       {s2.getImpulse():.2f} Ns")
             print(f"[DEBUG] Prop mass:     {s2.getPropellantMass():.4f} kg")
             print(f"[DEBUG] ISP final:     {isp:.2f} s")
-            print(f"[DEBUG] Pressão média: {s2.getAveragePressure()/1e5:.1f} bar")
+            print(f"[DEBUG] Average pressure: {s2.getAveragePressure()/1e5:.1f} bar")
         except Exception:
             pass
 

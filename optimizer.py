@@ -46,11 +46,11 @@ HIGH = np.array([60, 150, 40, 20, 4], dtype=float)
 
 
 # ==========================================================
-# USER INPUT (corrigido)
+# USER INPUT (fixed)
 # ==========================================================
 
-N_RANDOM = int(input("População fase 1 (random search): "))
-TOP_K = int(input("Top K para CMA-ES: "))
+N_RANDOM = int(input("Phase 1 population (random search): "))
+TOP_K = int(input("Top K for CMA-ES: "))
 
 
 # ==========================================================
@@ -105,7 +105,7 @@ def evaluate_design(design: MotorDesign) -> EvalResult:
     isp, burn, sim, prop_mass = simulate_openmotor(design)
     print(f"DEBUG: isp={isp}, burn={burn}, sim={sim}, prop_mass={prop_mass}")
 
-    # fallback seguro
+    # safe fallback
     if sim is None or isp <= 0:
         return EvalResult(
             isp=0.0,
@@ -124,7 +124,7 @@ def evaluate_design(design: MotorDesign) -> EvalResult:
     except Exception:
         apogee = 0.0
 
-    # SCORE ESTABILIZADO (importante para CMA-ES)
+    # STABILIZED SCORE (important for CMA-ES)
     score = (
         (apogee - TARGET_APOGEE) ** 2 / (TARGET_APOGEE ** 2)
         - 0.005 * isp
@@ -144,7 +144,7 @@ def evaluate_design(design: MotorDesign) -> EvalResult:
 
 def phase1_random_search():
 
-    print(f"\nFASE 1 - Random Search ({N_RANDOM})")
+    print(f"\nPHASE 1 - Random Search ({N_RANDOM})")
 
     rows = []
 
@@ -177,7 +177,7 @@ def phase1_random_search():
 
 def phase2_cmaes(top_df):
 
-    print("\nFASE 2 - CMA-ES")
+    print("\nPHASE 2 - CMA-ES")
 
     designs = []
 
@@ -271,29 +271,29 @@ def main():
 if __name__ == "__main__":
     main()
 
-#colado temporariamente no final do optimizer.py 
+# Temporarily added at the end for debugging the simulation
 
-from motor_sim.openmotor_sim import simulate_openmotor
-from core.models import MotorDesign
+# from motor_sim.openmotor_sim import simulate_openmotor
+# from core.models import MotorDesign
 
-test = MotorDesign(
-    outer_diam_mm   = 55.5,
-    grain_length_mm = 106.0,
-    core_diam_mm    = 29.0,
-    throat_mm       = 16.0,
-    grains          = 3,
-)
+# test = MotorDesign(
+#     outer_diam_mm   = 55.5,
+#     grain_length_mm = 106.0,
+#     core_diam_mm    = 29.0,
+#     throat_mm       = 16.0,
+#     grains          = 3,
+# )
 
-isp, burn, sim, prop_mass = simulate_openmotor(test)
+# isp, burn, sim, prop_mass = simulate_openmotor(test)
 
-print(f"ISP:        {isp:.2f} s")
-print(f"Burn time:  {burn:.3f} s")
-print(f"Prop mass:  {prop_mass:.4f} kg")
+# print(f"ISP:        {isp:.2f} s")
+# print(f"Burn time:  {burn:.3f} s")
+# print(f"Prop mass:  {prop_mass:.4f} kg")
 
-try:
-    print(f"Max pres:   {sim.getMaxPressure()/1e5:.2f} bar")
-    print(f"Avg pres:   {sim.getAveragePressure()/1e5:.2f} bar")
-    print(f"Impulse:    {sim.getImpulse():.2f} Ns")
-    print(f"Avg thrust: {sim.getAverageForce():.2f} N")
-except Exception as e:
-    print(f"Erro: {e}")
+# try:
+#     print(f"Max pres:   {sim.getMaxPressure()/1e5:.2f} bar")
+#     print(f"Avg pres:   {sim.getAveragePressure()/1e5:.2f} bar")
+#     print(f"Impulse:    {sim.getImpulse():.2f} Ns")
+#     print(f"Avg thrust: {sim.getAverageForce():.2f} N")
+# except Exception as e:
+#     print(f"Error: {e}")
